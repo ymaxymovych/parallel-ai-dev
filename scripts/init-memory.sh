@@ -52,6 +52,18 @@ copy_one "coordination/PROJECT_MAP.md"
 copy_one "coordination/inbox/README.md"
 copy_one "coordination/log/README.md"
 
+# Мітка версії: з якого коміту комплекту зроблено цю інсталяцію. Без неї
+# update-kit.sh не може сказати, які шаблони змінились ПІСЛЯ твого встановлення,
+# і чесно відповідає «не знаю» замість «все свіже».
+KIT_DIR="$(cd "$SRC_DIR/.." && pwd)"
+if [ -d "$KIT_DIR/.git" ]; then
+  git -C "$KIT_DIR" rev-parse HEAD > "$DEST_DIR/coordination/.kit-version"
+  echo "✅ мітка версії: coordination/.kit-version"
+else
+  echo "•  мітку версії не ставлю: комплект не є git-клоном"
+  echo "   (завантажений архівом — оновлюватись доведеться вручну)"
+fi
+
 echo
 echo "Готово: створено $created, пропущено (вже існували) $skipped."
 echo
@@ -61,6 +73,9 @@ echo "     зони, команду перевірки перед PR, коман
 echo "  2. Заповни PROJECT_MAP.md тим, що в проєкті ВЖЕ є (це насіння анти-кіл),"
 echo "     і DECISIONS.md — 3-5 уже прийнятими рішеннями з поясненням «чому»."
 echo "  3. git add -A && git commit -m \"chore: структура пам'яті проєкту\" && git push"
+echo
+echo "Раз на місяць перевіряй свіжість комплекту:"
+echo "  bash $(cd "$SRC_DIR/.." && pwd)/scripts/update-kit.sh --check"
 echo
 echo "Перевірка, що все працює: відкрий новий чат промптом із prompts/worker.md"
 echo "і дай задачу, яка в проєкті вже частково зроблена. Перший рядок відповіді"
