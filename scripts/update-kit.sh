@@ -28,7 +28,7 @@ CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
 
 say() { printf '%s\n' "$*"; }
-die() { printf '%s\n' "$*" >&2; exit "${2:-1}"; }
+die() { local msg="$1"; local code="${2:-1}"; printf '%s\n' "$msg" >&2; exit "$code"; }
 
 # ── Ланка 1: GitHub → клон ───────────────────────────────────────────────
 
@@ -47,10 +47,22 @@ LOCAL="$(git -C "$KIT_DIR" rev-parse HEAD)"
 REMOTE="$(git -C "$KIT_DIR" rev-parse "origin/$BRANCH")"
 
 rc=0
+behind="$(git -C "$KIT_DIR" rev-list --count "HEAD..origin/$BRANCH")"
+ahead="$(git -C "$KIT_DIR" rev-list --count "origin/$BRANCH..HEAD")"
+
 if [ "$LOCAL" = "$REMOTE" ]; then
   say "1/2 ✅ Клон свіжий (гілка $BRANCH)."
+elif [ "$behind" -eq 0 ]; then
+  # Попереду або розійшовся: ти щось комітив у самому комплекті. Це не «відстав»,
+  # і мовчазне зелене тут теж брехня — git pull такого не полагодить.
+  if [ "$ahead" -gt 0 ] ; then
+    say "1/2 ⚠️  У клоні є $ahead власний(их) коміт(ів), яких немає на GitHub."
+  fi
+  say "       Ти правив сам комплект — оновлення тут не автоматичне."
+  say "       Або перенеси свої зміни й зроби git reset --hard origin/$BRANCH,"
+  say "       або постав чистий клон поруч. Нічого не чіпаю."
+  rc=3
 else
-  behind="$(git -C "$KIT_DIR" rev-list --count "HEAD..origin/$BRANCH")"
   if [ "$CHECK_ONLY" -eq 1 ]; then
     say "1/2 ⚠️  Клон ВІДСТАВ від GitHub на $behind коміт(ів) — запусти оновлення."
     rc=3
