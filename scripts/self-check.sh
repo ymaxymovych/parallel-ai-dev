@@ -159,8 +159,12 @@ if [ -f "$MISTAKES" ]; then
 fi
 
 # ─────────────────────────────────────────────── 3. запобіжник анти-кіл ───────
+# Шукаємо РЕАЛЬНІ імена файлів (з .selfcheck.conf, якщо він є), а не шаблонні
+# ключі. Інакше проєкт, у якого карта зветься PRODUCT_MAP, вічно червонітиме на
+# правилі, яке насправді виконує.
 MISS=""
-for k in DECISIONS PROJECT_MAP BACKLOG; do
+for f in "$DECISIONS" "$PROJECT_MAP" "$BACKLOG"; do
+  k=$(basename "$f" .md)
   grep -q "$k" CLAUDE.md 2>/dev/null || MISS="$MISS $k"
 done
 if [ -n "$MISS" ]; then
