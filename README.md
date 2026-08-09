@@ -40,6 +40,7 @@
 | [`template/coordination/`](template/coordination) | Структура пам'яті: `DECISIONS` / `MISTAKES` / `PROJECT_MAP` / `BACKLOG` / `WORKSTREAMS` / `inbox` / `log`. |
 | [`prompts/`](prompts) | Стартові промпти координатора і робочого чату. |
 | [`scripts/init-memory.sh`](scripts/init-memory.sh) | Розгортає структуру у твоєму репозиторії однією командою. Нічого не перезаписує. |
+| [`scripts/self-check.sh`](scripts/self-check.sh) | Перевіряє, чи проєкт СПРАВДІ живе за правилами: таблиця «правило → так/ні → чим доведено». Тільки читає. |
 
 ## Швидкий старт
 
@@ -55,6 +56,9 @@ bash ~/parallel-ai-dev/scripts/init-memory.sh
 git add -A && git commit -m "chore: структура пам'яті проєкту" && git push
 
 # 4. Відкрити перший чат промптом з prompts/coordinator.md, решту — з prompts/worker.md
+
+# 5. Через тиждень роботи — перевірити себе (нічого не змінює, тільки читає)
+bash ~/parallel-ai-dev/scripts/self-check.sh
 ```
 
 ## Найважливіше правило: запобіжник «анти-кола»
@@ -93,8 +97,6 @@ git add -A && git commit -m "chore: структура пам'яті проєк�
 (AI Advisory Board). Він написаний так, щоб його можна було пройти самостійно: швидкий
 старт, самоперевірка, приклади. Але якщо десь застрягнеш — у курсі є живі сесії, де це
 розбирають руками. Тобто самостійність тут не обов'язок, а зручність.
-
-- 🎓 [Курси та програми](https://course.aiadvisoryboard.me/courses) — навчання роботі з AI-агентами
 
 - 🎓 [Курси та програми](https://course.aiadvisoryboard.me/courses) — навчання роботі з AI-агентами
 - 💳 [Ціни](https://course.aiadvisoryboard.me/pricing)
