@@ -1,0 +1,16 @@
+# Локальне сміття
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Ніколи не комітити секрети
+.env
+.env.*
+*.pem
+*.key
+providers.json
+
+# Редактори
+.vscode/
+.idea/
