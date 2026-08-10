@@ -134,6 +134,11 @@ else
   [ -e CLAUDE.parallel-ai-dev.md ] && ! git ls-files --error-unmatch CLAUDE.parallel-ai-dev.md >/dev/null 2>&1 \
     && R2_MISS="$R2_MISS CLAUDE.parallel-ai-dev.md"
   [ -n "$R2_MISS" ] && rfail R2 "не закомічені (untracked):$R2_MISS — git add + commit + push, інакше пам'ять не переживе чистку диска"
+  # НОВІ файли пам'яті теж мусять бути застраховані: лист в інбоксі чи нотатка,
+  # створена але не закомічена, — найчастіший студентський випадок втрати
+  # (AC-16; канонічний список вище її не бачить, git diff untracked не показує).
+  R2_NEW=$(git ls-files --others --exclude-standard -- coordination/ 2>/dev/null | grep -c . || true)
+  [ "${R2_NEW:-0}" -gt 0 ] && rfail R2 "$R2_NEW нових файлів у coordination/ не закомічено — git add + commit + push (git status покаже, які саме)"
 fi
 
 # R3 — у ВІДСТЕЖУВАНИХ файлах пам'яті немає незакомічених правок
@@ -150,10 +155,13 @@ if [ "$HAS_HEAD" = 1 ]; then
 fi
 
 # R4 — файли пам'яті не задавлені .gitignore
+# --no-index обов'язковий: без нього check-ignore МОВЧИТЬ про вже відстежуваний
+# файл під ignore-правилом (перевірено емпірично, рев'ю 2.0.1) — а саме такий
+# стан ховає всі МАЙБУТНІ файли поруч.
 R4_BAD=""
 for f in CLAUDE.md "$DECISIONS" "$MISTAKES" "$PROJECT_MAP" "$BACKLOG" "$WORKSTREAMS" "$SETUP"; do
   in_repo "$f" || continue
-  git check-ignore -q "$f" 2>/dev/null && R4_BAD="$R4_BAD $f"
+  git check-ignore --no-index -q "$f" 2>/dev/null && R4_BAD="$R4_BAD $f"
 done
 [ -n "$R4_BAD" ] && rfail R4 "гітігнор ховає файли пам'яті:$R4_BAD — прибери ці шляхи з .gitignore"
 
@@ -187,8 +195,17 @@ if [ -e "$PROJECT_MAP" ]; then
   # [[:alnum:]]: у C-локалі git-bash кирилиця — не alnum, і суто українська
   # карта рахувалась порожньою (зловлено тестом T3).
   R6_TPL="$KIT_ROOT/template/coordination/PROJECT_MAP.md"
-  R6_N=$(strip_noise "$PROJECT_MAP" | grep -v '^#' | grep -v '^[[:space:]]*>' \
-         | grep -v '^[[:space:]]*|[-: |]*$' | grep -c '[^[:space:]]' || true)
+  # Рядки, що дослівно збігаються з рядками чистого шаблону (шапка таблиці
+  # тощо), — не зміст: файл «шапка + роздільник» інакше рахувався заповненим
+  # (AC-17, зловлено рев'ю 2.0.1). grep -Fxv -f відсіює саме такі рядки.
+  if [ -f "$R6_TPL" ]; then
+    R6_N=$(strip_noise "$PROJECT_MAP" | tr -d '\r' | grep -v '^#' | grep -v '^[[:space:]]*>' \
+           | grep -v '^[[:space:]]*|[-: |]*$' | grep '[^[:space:]]' \
+           | grep -Fxv -f <(tr -d '\r' < "$R6_TPL") | grep -c . || true)
+  else
+    R6_N=$(strip_noise "$PROJECT_MAP" | grep -v '^#' | grep -v '^[[:space:]]*>' \
+           | grep -v '^[[:space:]]*|[-: |]*$' | grep -c '[^[:space:]]' || true)
+  fi
   R6_EMPTY=0
   if [ -f "$R6_TPL" ] && cmp -s <(tr -d '\r' < "$PROJECT_MAP") <(tr -d '\r' < "$R6_TPL"); then
     R6_EMPTY=1   # байт-у-байт чистий шаблон

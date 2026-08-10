@@ -1,6 +1,9 @@
 # Parallel AI Dev — паралельна AI-розробка з зовнішньою пам'яттю
 
-**Версія: 2.0.0** · [що нового](CHANGELOG.md) · найкоротший шлях до запуску — [QUICKSTART.md](QUICKSTART.md)
+**Версія: 2.0.1** · [що нового](CHANGELOG.md) · найкоротший шлях до запуску — [QUICKSTART.md](QUICKSTART.md)
+
+**Для кого:** ти вже працюєш з одним чатом Claude Code і дозрів до кількох
+одночасно; програмістом бути не обов'язково.
 
 > **EN (short):** A working system for running **several Claude Code chats in parallel on one
 > repository** without them overwriting each other, and with a **persistent memory** that survives
@@ -36,7 +39,7 @@
 
 | Файл | Що це |
 | --- | --- |
-| [`QUICKSTART.md`](QUICKSTART.md) | Від нуля до «✅ СИСТЕМА ГОТОВА» за 9 кроків. Починати звідси. |
+| [`QUICKSTART.md`](QUICKSTART.md) | Від нуля до «✅ СИСТЕМА ГОТОВА» за 8 кроків. Починати звідси. |
 | [`docs/00_JOB_DESCRIPTION.md`](docs/00_JOB_DESCRIPTION.md) | Опис РОБОТИ: ролі, чотири шари пам'яті, ключові протоколи, як виглядає робочий день системи. |
 | [`docs/01_STARTER_KIT.md`](docs/01_STARTER_KIT.md) | Розгорнуте встановлення + таблиця «найчастіші способи все зламати». |
 | [`docs/MANIFEST.md`](docs/MANIFEST.md) | Що кому належить: kit-owned / user-owned / append-only; довідник перевірок R1–R9; `.selfcheck.conf`. |

@@ -72,9 +72,23 @@ report "email (крім прикладів)"       '[A-Za-z0-9._%+-]+@[A-Za-z0-9
 report "ssh до користувача@хоста"     'ssh[[:space:]]+[A-Za-z0-9_-]+@[A-Za-z0-9.-]+'
 
 echo
+# Декларація видимості перевіряється НЕЗАЛЕЖНО від результату скану: чистий скан
+# без декларації раніше виходив нулем — і студент так і не заповнював SETUP.md
+# (AC-27, зловлено рев'ю 2.0.1).
+case "$VISIBILITY" in private|public-accepted) : ;; *)
+  echo "❌ У coordination/SETUP.md не задекларовано visibility — заповни його"
+  echo "   (private або public-accepted) і перезапусти."
+  exit 1 ;;
+esac
+
 if [ "$FOUND" -eq 0 ]; then
   echo "✅ Слідів не знайдено."
-  [ "$VISIBILITY" = "public-accepted" ] && echo "   Декларацію public-accepted підтверджено сканом."
+  case "$VISIBILITY" in
+    private)
+      echo "   Нагадування: декларація private застаріває в мить зміни видимості — перед публікацією прожени скан ще раз." ;;
+    public-accepted)
+      echo "   Пам'ять цього репозиторію ВЖЕ публічна — і назавжди: git-історія пам'ятає навіть видалене." ;;
+  esac
   exit 0
 fi
 
@@ -91,10 +105,7 @@ case "$VISIBILITY" in
     echo "Але перед зміною видимості на публічну цей скан мусить стати чистим."
     exit 0 ;;
   public-accepted)
-    echo "❌ Репозиторій задекларовано ПУБЛІЧНИМ — розберись зі знахідками зараз."
-    exit 1 ;;
-  *)
-    echo "❌ У coordination/SETUP.md не задекларовано visibility — заповни його"
-    echo "   (private або public-accepted) і перезапусти."
+    echo "❌ Репозиторій задекларовано ПУБЛІЧНИМ — ці сліди вже публічні і назавжди."
+    echo "   Розберись зі знахідками зараз (ротуй справжні секрети!)."
     exit 1 ;;
 esac
