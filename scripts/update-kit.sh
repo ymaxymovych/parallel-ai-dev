@@ -148,8 +148,13 @@ fi
 # роками. Тому групи друкуються окремо, з різними порадами.
 #
 # Список kit-owned шаблонів — явний: щоб додати новий, допиши рядок.
+# Джерело правди — таблиця власності в docs/MANIFEST.md; список мусить збігатися
+# з нею, інакше повертається рівно той баг, який ця версія й лікує: довідник
+# каже «файл наш», а скрипт поводиться з ним як з користувацьким.
 KIT_OWNED_TEMPLATES="
 template/CLAUDE.parallel-ai-dev.md
+template/coordination/inbox/README.md
+template/coordination/log/README.md
 "
 
 is_kit_owned() {
