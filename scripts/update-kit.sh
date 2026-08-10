@@ -16,7 +16,9 @@
 # ЩО ЦЕЙ СКРИПТ НІКОЛИ НЕ РОБИТЬ: не перезаписує твої файли. Скопійовані
 # шаблони ти заповнив своїм змістом — машина не знає, де твоє, а де наше.
 # Тому ланка 2 не «оновлює», а НАЗИВАЄ файли, які змінилися в комплекті після
-# твого встановлення, щоб ти переніс зміни свідомо.
+# твого встановлення, щоб ти переніс зміни свідомо. Виняток у ПОРАДІ (не в
+# поведінці): для kit-owned файлів — тих, що пишемо ми, а не ти, — ланка 2
+# одразу дає готову команду копіювання. Записує її все одно людина.
 
 set -euo pipefail
 
@@ -139,15 +141,71 @@ if [ -z "$CHANGED" ]; then
   exit "$rc"
 fi
 
+# Змінені шаблони діляться НЕ порівну. Один спільний текст «твої файли я не
+# чіпаю, вони заповнені тобою» брехав про kit-owned файли: їх пишемо МИ, вони
+# не заповнюються користувачем, і оновлюються звичайним копіюванням. Людина
+# читала «доведеться переносити руками» — і не оновлювала правила комплекту
+# роками. Тому групи друкуються окремо, з різними порадами.
+#
+# Список kit-owned шаблонів — явний: щоб додати новий, допиши рядок.
+KIT_OWNED_TEMPLATES="
+template/CLAUDE.parallel-ai-dev.md
+"
+
+is_kit_owned() {
+  local needle="$1" p
+  for p in $KIT_OWNED_TEMPLATES; do
+    [ "$p" = "$needle" ] && return 0
+  done
+  return 1
+}
+
+CHANGED_KIT=""
+CHANGED_USER=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  if is_kit_owned "$f"; then
+    CHANGED_KIT="$CHANGED_KIT$f
+"
+  else
+    CHANGED_USER="$CHANGED_USER$f
+"
+  fi
+done <<EOF
+$CHANGED
+EOF
+
 say "2/2 ⚠️  Інсталяція ВІДСТАЛА: у комплекті змінились шаблони, які ти вже"
-say "       скопіював до себе. Твої файли я НЕ чіпаю — вони заповнені тобою."
+say "       скопіював до себе."
+
+if [ -n "$CHANGED_KIT" ]; then
+  say ""
+  say "       ── ФАЙЛИ КОМПЛЕКТУ (пишемо їх ми, не ти) ──"
+  printf '%s' "$CHANGED_KIT" | sed 's|^template/|         • |'
+  say "       Це наші правила, ти їх не заповнюєш — тому їх можна просто"
+  say "       перезаписати новою версією:"
+  printf '%s' "$CHANGED_KIT" | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    say "         cp \"$KIT_DIR/$f\" \"$PROJECT_DIR/${f#template/}\""
+  done
+  say "       Але якщо ти СВІДОМО правив цей файл під себе — копіювання затре"
+  say "       твої правки. Тоді спершу глянь, що саме змінилось:"
+  printf '%s' "$CHANGED_KIT" | while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    say "         git -C \"$KIT_DIR\" diff $INSTALLED_COMMIT $LOCAL -- $f"
+  done
+fi
+
+if [ -n "$CHANGED_USER" ]; then
+  say ""
+  say "       ── ТВОЇ ФАЙЛИ (заповнені тобою) ──"
+  say "       Їх я НЕ чіпаю. Перенеси потрібне вручну і свідомо:"
+  printf '%s' "$CHANGED_USER" | sed 's|^template/|         • |'
+  say "       Подивитись самі зміни:"
+  say "         git -C \"$KIT_DIR\" diff $INSTALLED_COMMIT $LOCAL -- $(printf '%s' "$CHANGED_USER" | tr '\n' ' ')"
+fi
+
 say ""
-say "       Що змінилось (перенеси потрібне вручну):"
-printf '%s\n' "$CHANGED" | sed 's|^template/|         • |'
-say ""
-say "       Подивитись самі зміни:"
-say "         git -C \"$KIT_DIR\" diff $INSTALLED_COMMIT $LOCAL -- template/"
-say ""
-say "       Перенесеш — постав мітку, щоб перевірка знову стала зеленою:"
+say "       Оновиш — постав мітку, щоб перевірка знову стала зеленою:"
 say "         printf '%s\\n' \"$NEW_STAMP\" > \"$STAMP\""
 exit 3
