@@ -102,10 +102,22 @@ copy_one() {
   created=$((created + 1))
 }
 
+# Якщо проєкт УЖЕ задекларував у SETUP.md власну конституцію
+# (constitution: self-managed) — файли конституції кіту не потрібні:
+# нав'язувати їх означало б створити другий потік правил поруч із живим.
+SELF_MANAGED=0
+if [ -f "$DEST_DIR/coordination/SETUP.md" ]; then
+  grep -qE '^[[:space:]]*constitution:[[:space:]]*self-managed' "$DEST_DIR/coordination/SETUP.md" \
+    && SELF_MANAGED=1
+fi
+
 # Конституція — ДВА файли з різними власниками:
 #   CLAUDE.parallel-ai-dev.md — правила кіту, оновлюються кітом (не редагується);
 #   CLAUDE.md                 — файл КОРИСТУВАЧА: інсталятор створює його лише
 #                               якщо його НЕМАЄ, і ніколи не перезаписує наявний.
+if [ "$SELF_MANAGED" = 1 ]; then
+  echo "•  constitution: self-managed — файли конституції кіту не розгортаю"
+else
 copy_one "CLAUDE.parallel-ai-dev.md"
 if [ -e "$DEST_DIR/CLAUDE.md" ]; then
   if grep -q '^@CLAUDE\.parallel-ai-dev\.md' "$DEST_DIR/CLAUDE.md" 2>/dev/null; then
@@ -120,6 +132,7 @@ if [ -e "$DEST_DIR/CLAUDE.md" ]; then
   fi
 else
   copy_one "CLAUDE.md"
+fi
 fi
 copy_one "coordination/WORKSTREAMS.md" WORKSTREAMS
 copy_one "coordination/DECISIONS.md"   DECISIONS
