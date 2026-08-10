@@ -44,14 +44,15 @@
 | [`docs/01_STARTER_KIT.md`](docs/01_STARTER_KIT.md) | Розгорнуте встановлення + таблиця «найчастіші способи все зламати». |
 | [`docs/MANIFEST.md`](docs/MANIFEST.md) | Що кому належить: kit-owned / user-owned / append-only; довідник перевірок R1–R9; `.selfcheck.conf`. |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Симптом → причина → ремонт. |
-| [`template/CLAUDE.parallel-ai-dev.md`](template/CLAUDE.parallel-ai-dev.md) | Правила кіту (оновлюються кітом). Під'єднуються одним рядком у твоєму `CLAUDE.md`. |
+| [`template/CLAUDE.parallel-ai-dev.md`](template/CLAUDE.parallel-ai-dev.md) | Правила кіту — файл КОМПЛЕКТУ, не твій (ти його не заповнюєш). `update-kit.sh` показує, коли він змінився, і дає готову команду оновлення — сам мовчки нічого не перезаписує. Під'єднуються одним рядком у твоєму `CLAUDE.md`. |
 | [`template/CLAUDE.md`](template/CLAUDE.md) | Твоя «конституція»: рядок імпорту + зони твого проєкту. Кіт її ніколи не перезаписує. |
 | [`template/coordination/`](template/coordination) | Структура пам'яті: `SETUP` / `DECISIONS` / `MISTAKES` / `PROJECT_MAP` / `BACKLOG` / `WORKSTREAMS` / `inbox` / `log`. |
 | [`prompts/`](prompts) | Стартові промпти координатора і робочого чату. |
 | [`scripts/init-memory.sh`](scripts/init-memory.sh) | Розгортає структуру у твоєму репозиторії однією командою. Нічого не перезаписує. |
 | [`scripts/self-check.sh`](scripts/self-check.sh) | Нормативні перевірки R1–R9 з вердиктом «✅ СИСТЕМА ГОТОВА / ❌ ЛИШИЛОСЬ: N» + розширена діагностика (`--full`). Тільки читає. |
 | [`scripts/check-publication-risk.sh`](scripts/check-publication-risk.sh) | Скан пам'яті на секрети/адреси перед тим, як репозиторій стане публічним. |
-| [`scripts/update-kit.sh`](scripts/update-kit.sh) | «Чи свіжий у мене кіт?» — дві ланки: GitHub→клон і клон→твоя інсталяція. |
+| [`scripts/update-kit.sh`](scripts/update-kit.sh) | «Чи свіжий у мене кіт?» — дві ланки: GitHub→клон і клон→твоя інсталяція. Змінені шаблони показує двома групами: файли кіту (готова команда копіювання) і твої (переносиш свідомо). Нічого не перезаписує. |
+| [`scripts/test-update-kit.sh`](scripts/test-update-kit.sh) | Пісочниця для `update-kit.sh`: піднімає одноразовий кіт у tmp і перевіряє, що групи власників не переплутані. |
 
 ## Швидкий старт
 
