@@ -116,13 +116,24 @@ for f in "$DECISIONS" "$MISTAKES" "$PROJECT_MAP" "$BACKLOG" "$WORKSTREAMS"; do
     if [ -n "$TS" ]; then
       LAST=$(git log -1 --format=%ad --date=short -- "$f")
       SRC="останній коміт"
+      NOCOMMIT=0
     else
+      # Коміта немає з двох різних причин, і плутати їх не можна: або файл щойно
+      # створено і ще не закомічено (тоді це попередження — незастрахована робота),
+      # або він лежить в іншому репозиторії (у нас так із WORKSTREAMS). Перша
+      # версія на обидва випадки писала «поза цим репо» і брехала новачку в очі.
       TS=$(date -r "$f" +%s 2>/dev/null || echo 0)
       LAST=$(date -r "$f" '+%Y-%m-%d' 2>/dev/null || echo "невідомо")
-      SRC="змінено на диску (поза цим репо)"
+      NOCOMMIT=1
+      case "$f" in
+        /*|../*) SRC="змінено на диску (файл поза цим репозиторієм)" ; NOCOMMIT=0 ;;
+        *)       SRC="створено $LAST, але ЩЕ НЕ ЗАКОМІЧЕНО" ;;
+      esac
     fi
     AGE_D=$(( ( $(date +%s) - TS ) / 86400 ))
-    if [ "$AGE_D" -gt 30 ]; then
+    if [ "$NOCOMMIT" = 1 ]; then
+      row warn "$n живий" "$SRC — закоміть, інакше файл не застрахований"
+    elif [ "$AGE_D" -gt 30 ]; then
       row warn "$n живий" "$SRC $LAST — понад 30 днів тому; файл є, але мертвий"
     else
       row ok "$n живий" "$SRC $LAST"
@@ -174,11 +185,14 @@ else
 fi
 
 # ──────────────────────────────────────────────────────── 4. координація ──────
-IN=$(count_files 'coordination/inbox/*')
-if [ "$IN" -eq 0 ]; then
+# README.md всередині інбоксу — це інструкція, а не лист. Без цього виключення
+# порожній інбокс щойно встановленого кіту рапортує «1 лист» і перевірка зеленіє
+# там, де листування ще не починалось.
+IN=$(git ls-files 'coordination/inbox/*' 2>/dev/null | grep -vi '/readme\.md$' | grep -c . || true)
+if [ "${IN:-0}" -eq 0 ]; then
   row warn "Інбокс використовується" "0 листів у git — або чат один, або листування йде повз git і не переживе перезапуск"
 else
-  OKN=$(git ls-files 'coordination/inbox/*' | grep -c 'from-.*-to-' || true)
+  OKN=$(git ls-files 'coordination/inbox/*' | grep -vi '/readme\.md$' | grep -c 'from-.*-to-' || true)
   row ok "Інбокс використовується" "$IN листів, з них $OKN за форматом імен from-*-to-*"
 fi
 
@@ -190,13 +204,17 @@ else
 fi
 
 if have coordination/WORKSTREAMS.md; then
-  C=$(grep -c '\[COORD\]' coordination/WORKSTREAMS.md || true)
+  # Рахуємо ТІЛЬКИ рядки таблиці: слово [COORD] законно стоїть і в тексті правила
+  # вгорі файлу, і в закоментованому прикладі заповнення. Перша версія рахувала
+  # все підряд — і щойно встановлений шаблон рапортував «двоє координаторів».
+  WS_ROWS=$(sed '/<!--/,/-->/d' coordination/WORKSTREAMS.md | grep '^[[:space:]]*|' | grep '\[COORD\]' || true)
+  C=$(printf '%s' "$WS_ROWS" | grep -c . || true)
   TODAY=$(date '+%Y-%m-%d')
-  if [ "$C" -eq 0 ]; then
+  if [ "${C:-0}" -eq 0 ]; then
     row warn "Рівно один координатор із сьогоднішньою датою" "рядків [COORD] немає — роль нічия, ризиковані PR нікому мерджити"
   elif [ "$C" -gt 1 ]; then
     row bad "Рівно один координатор" "рядків [COORD] $C — двоє координаторів це зіткнення на одному PR"
-  elif grep '\[COORD\]' coordination/WORKSTREAMS.md | grep -q "$TODAY"; then
+  elif printf '%s' "$WS_ROWS" | grep -q "$TODAY"; then
     row ok "Рівно один координатор із сьогоднішньою датою" "рядок [COORD] позначений $TODAY"
   else
     row warn "Дата координатора свіжа" "рядок [COORD] є, але дата не сьогоднішня — за протоколом роль вільна"
