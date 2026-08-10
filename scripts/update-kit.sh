@@ -100,24 +100,41 @@ fi
 
 INSTALLED="$(tr -d '[:space:]' < "$STAMP")"
 
+# З версії 2.0.0 мітка — це НОМЕР ВЕРСІЇ («2.0.0», людиночитний і той самий,
+# що в тегу і README), а не хеш коміту. Старі інсталяції несуть хеш — обидва
+# формати підтримуються: номер мапиться на коміт через тег vX.Y.Z.
+KIT_VER=""
+[ -f "$KIT_DIR/VERSION" ] && KIT_VER="$(head -1 "$KIT_DIR/VERSION" | tr -d '\r ')"
+
+INSTALLED_COMMIT="$INSTALLED"
+if printf '%s' "$INSTALLED" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  if [ "$INSTALLED" = "$KIT_VER" ]; then
+    say "2/2 ✅ Інсталяція відповідає версії комплекту ($KIT_VER) — усе свіже."
+    exit "$rc"
+  fi
+  INSTALLED_COMMIT="$(git -C "$KIT_DIR" rev-parse -q --verify "v$INSTALLED^{commit}" 2>/dev/null || true)"
+fi
+
 if [ "$INSTALLED" = "$LOCAL" ]; then
   say "2/2 ✅ Інсталяція відповідає клону — усе свіже."
   exit "$rc"
 fi
 
-if ! git -C "$KIT_DIR" cat-file -e "$INSTALLED^{commit}" 2>/dev/null; then
+if [ -z "$INSTALLED_COMMIT" ] || ! git -C "$KIT_DIR" cat-file -e "$INSTALLED_COMMIT^{commit}" 2>/dev/null; then
   say "2/2 ⚠️  Мітка версії ($INSTALLED) не знайдена в історії комплекту."
   say "       Звірся з шаблонами вручну і перепиши мітку в coordination/.kit-version."
   exit 3
 fi
 
-CHANGED="$(git -C "$KIT_DIR" diff --name-only "$INSTALLED" "$LOCAL" -- template/ || true)"
+CHANGED="$(git -C "$KIT_DIR" diff --name-only "$INSTALLED_COMMIT" "$LOCAL" -- template/ || true)"
+
+NEW_STAMP="${KIT_VER:-$LOCAL}"
 
 if [ -z "$CHANGED" ]; then
   say "2/2 ✅ Шаблони не змінювались від твого встановлення — переносити нічого."
   if [ "$CHECK_ONLY" -eq 0 ]; then
-    printf '%s\n' "$LOCAL" > "$STAMP"
-    say "       Мітку версії оновлено."
+    printf '%s\n' "$NEW_STAMP" > "$STAMP"
+    say "       Мітку версії оновлено ($NEW_STAMP)."
   fi
   exit "$rc"
 fi
@@ -129,8 +146,8 @@ say "       Що змінилось (перенеси потрібне вруч�
 printf '%s\n' "$CHANGED" | sed 's|^template/|         • |'
 say ""
 say "       Подивитись самі зміни:"
-say "         git -C \"$KIT_DIR\" diff $INSTALLED $LOCAL -- template/"
+say "         git -C \"$KIT_DIR\" diff $INSTALLED_COMMIT $LOCAL -- template/"
 say ""
 say "       Перенесеш — постав мітку, щоб перевірка знову стала зеленою:"
-say "         printf '%s\\n' \"$LOCAL\" > \"$STAMP\""
+say "         printf '%s\\n' \"$NEW_STAMP\" > \"$STAMP\""
 exit 3

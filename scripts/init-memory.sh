@@ -17,6 +17,17 @@ if [ ! -d "$SRC_DIR" ]; then
   exit 1
 fi
 
+# Захист від «розгорнув кіт у самому кіті»: якщо в цільовій теці лежить маркер
+# комплекту — це клон/форк parallel-ai-dev, а не робочий проєкт. Перевіряємо
+# МАРКЕР-ФАЙЛ, а не назву теки чи адресу remote: теку перейменовують, remote
+# у форків інший, а файл їде з клоном завжди.
+if [ -f "$DEST_DIR/.parallel-ai-dev-kit" ]; then
+  echo "❌ Це тека самого комплекту parallel-ai-dev (є маркер .parallel-ai-dev-kit)." >&2
+  echo "   Перейди в корінь СВОГО проєкту і запусти звідти:" >&2
+  echo "   cd /шлях/до/твого/проєкту && bash $SRC_DIR/../scripts/init-memory.sh" >&2
+  exit 1
+fi
+
 # Перевіряти git через наявність ТЕКИ .git не можна: у git worktree (а саме туди
 # цей комплект і відправляє робочі чати) `.git` — це ФАЙЛ із рядком «gitdir: …».
 # Стара перевірка `[ -d .git ]` через це відмовлялася працювати рівно в тому
@@ -91,21 +102,59 @@ copy_one() {
   created=$((created + 1))
 }
 
-copy_one "CLAUDE.md"
+# Конституція — ДВА файли з різними власниками:
+#   CLAUDE.parallel-ai-dev.md — правила кіту, оновлюються кітом (не редагується);
+#   CLAUDE.md                 — файл КОРИСТУВАЧА: інсталятор створює його лише
+#                               якщо його НЕМАЄ, і ніколи не перезаписує наявний.
+copy_one "CLAUDE.parallel-ai-dev.md"
+if [ -e "$DEST_DIR/CLAUDE.md" ]; then
+  if grep -q '^@CLAUDE\.parallel-ai-dev\.md' "$DEST_DIR/CLAUDE.md" 2>/dev/null; then
+    echo "•  вже є, не чіпаю: CLAUDE.md (імпорт правил кіту на місці)"
+    skipped=$((skipped + 1))
+  else
+    echo "⚠  CLAUDE.md уже існує — я його НЕ чіпаю (він твій). Щоб під'єднати"
+    echo "   правила кіту, додай у нього ОДИН рядок (окремим рядком, зверху):"
+    echo
+    echo "   @CLAUDE.parallel-ai-dev.md"
+    echo
+  fi
+else
+  copy_one "CLAUDE.md"
+fi
 copy_one "coordination/WORKSTREAMS.md" WORKSTREAMS
 copy_one "coordination/DECISIONS.md"   DECISIONS
 copy_one "coordination/BACKLOG.md"     BACKLOG
 copy_one "coordination/MISTAKES.md"    MISTAKES
 copy_one "coordination/PROJECT_MAP.md" PROJECT_MAP
+copy_one "coordination/SETUP.md"
 copy_one "coordination/inbox/README.md"
 copy_one "coordination/log/README.md"
 
-# Мітка версії: з якого коміту комплекту зроблено цю інсталяцію. Без неї
+# .gitattributes: shell-скрипти мусять жити з LF — git на Windows із
+# core.autocrlf=true інакше підсуне CRLF, і bash упаде на першому ж рядку.
+# ДОПИСУЄМО рядок, ніколи не перезаписуємо чужий файл.
+GA="$DEST_DIR/.gitattributes"
+GA_LINE='*.sh text eol=lf'
+if [ -f "$GA" ] && grep -qF "$GA_LINE" "$GA"; then
+  echo "•  вже є, не чіпаю: .gitattributes (правило LF для *.sh на місці)"
+  skipped=$((skipped + 1))
+else
+  printf '%s\n' "$GA_LINE" >> "$GA"
+  echo "✅ дописано в .gitattributes: $GA_LINE"
+  created=$((created + 1))
+fi
+
+# Мітка версії: з якої версії комплекту зроблено цю інсталяцію. Без неї
 # update-kit.sh не може сказати, які шаблони змінились ПІСЛЯ твого встановлення,
 # і чесно відповідає «не знаю» замість «все свіже».
+# З 2.0.0 мітка — це номер версії (файл VERSION у корені кіту); для комплекту
+# без VERSION (старий клон) лишається запасний варіант — хеш коміту.
 KIT_DIR="$(cd "$SRC_DIR/.." && pwd)"
-if git -C "$KIT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  mkdir -p "$DEST_DIR/coordination"
+mkdir -p "$DEST_DIR/coordination"
+if [ -f "$KIT_DIR/VERSION" ]; then
+  head -1 "$KIT_DIR/VERSION" | tr -d '\r ' > "$DEST_DIR/coordination/.kit-version"
+  echo "✅ мітка версії: coordination/.kit-version ($(cat "$DEST_DIR/coordination/.kit-version"))"
+elif git -C "$KIT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$KIT_DIR" rev-parse HEAD > "$DEST_DIR/coordination/.kit-version"
   echo "✅ мітка версії: coordination/.kit-version"
 else
@@ -117,11 +166,13 @@ echo
 echo "Готово: створено $created, пропущено (вже існували) $skipped, канон уже на місці $redirected."
 echo
 echo "Наступні кроки:"
-echo "  1. Відкрий CLAUDE.md і заповни місця <...> — назву проєкту, ризикові"
+echo "  1. Заповни coordination/SETUP.md — три декларації (visibility/mode/constitution)."
+echo "  2. Відкрий CLAUDE.md і заповни місця <...> — назву проєкту, ризикові"
 echo "     зони, команду перевірки перед PR, команду деплою."
-echo "  2. Заповни PROJECT_MAP.md тим, що в проєкті ВЖЕ є (це насіння анти-кіл),"
+echo "  3. Заповни PROJECT_MAP.md тим, що в проєкті ВЖЕ є (це насіння анти-кіл),"
 echo "     і DECISIONS.md — 3-5 уже прийнятими рішеннями з поясненням «чому»."
-echo "  3. git add -A && git commit -m \"chore: структура пам'яті проєкту\" && git push"
+echo "  4. git add -A && git commit -m \"chore: структура пам'яті проєкту\" && git push"
+echo "  5. bash $(cd "$SRC_DIR/.." && pwd)/scripts/self-check.sh — покаже, що лишилось."
 echo
 echo "Раз на місяць перевіряй свіжість комплекту:"
 echo "  bash $(cd "$SRC_DIR/.." && pwd)/scripts/update-kit.sh --check"

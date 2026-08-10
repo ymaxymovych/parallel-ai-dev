@@ -1,5 +1,7 @@
 # Parallel AI Dev — паралельна AI-розробка з зовнішньою пам'яттю
 
+**Версія: 2.0.0** · [що нового](CHANGELOG.md) · найкоротший шлях до запуску — [QUICKSTART.md](QUICKSTART.md)
+
 > **EN (short):** A working system for running **several Claude Code chats in parallel on one
 > repository** without them overwriting each other, and with a **persistent memory** that survives
 > between sessions (Karpathy-style distillation layers). One orchestrator chat gates risky merges
@@ -34,13 +36,19 @@
 
 | Файл | Що це |
 | --- | --- |
-| [`docs/00_JOB_DESCRIPTION.md`](docs/00_JOB_DESCRIPTION.md) | Опис РОБОТИ: ролі, чотири шари пам'яті, ключові протоколи, як виглядає робочий день системи. Читати першим. |
-| [`docs/01_STARTER_KIT.md`](docs/01_STARTER_KIT.md) | Покрокове встановлення в свій проєкт + таблиця «найчастіші способи все зламати». |
-| [`template/CLAUDE.md`](template/CLAUDE.md) | Готова «конституція» проєкту. Claude Code підвантажує її в КОЖЕН чат автоматично. |
-| [`template/coordination/`](template/coordination) | Структура пам'яті: `DECISIONS` / `MISTAKES` / `PROJECT_MAP` / `BACKLOG` / `WORKSTREAMS` / `inbox` / `log`. |
+| [`QUICKSTART.md`](QUICKSTART.md) | Від нуля до «✅ СИСТЕМА ГОТОВА» за 9 кроків. Починати звідси. |
+| [`docs/00_JOB_DESCRIPTION.md`](docs/00_JOB_DESCRIPTION.md) | Опис РОБОТИ: ролі, чотири шари пам'яті, ключові протоколи, як виглядає робочий день системи. |
+| [`docs/01_STARTER_KIT.md`](docs/01_STARTER_KIT.md) | Розгорнуте встановлення + таблиця «найчастіші способи все зламати». |
+| [`docs/MANIFEST.md`](docs/MANIFEST.md) | Що кому належить: kit-owned / user-owned / append-only; довідник перевірок R1–R9; `.selfcheck.conf`. |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Симптом → причина → ремонт. |
+| [`template/CLAUDE.parallel-ai-dev.md`](template/CLAUDE.parallel-ai-dev.md) | Правила кіту (оновлюються кітом). Під'єднуються одним рядком у твоєму `CLAUDE.md`. |
+| [`template/CLAUDE.md`](template/CLAUDE.md) | Твоя «конституція»: рядок імпорту + зони твого проєкту. Кіт її ніколи не перезаписує. |
+| [`template/coordination/`](template/coordination) | Структура пам'яті: `SETUP` / `DECISIONS` / `MISTAKES` / `PROJECT_MAP` / `BACKLOG` / `WORKSTREAMS` / `inbox` / `log`. |
 | [`prompts/`](prompts) | Стартові промпти координатора і робочого чату. |
 | [`scripts/init-memory.sh`](scripts/init-memory.sh) | Розгортає структуру у твоєму репозиторії однією командою. Нічого не перезаписує. |
-| [`scripts/self-check.sh`](scripts/self-check.sh) | Перевіряє, чи проєкт СПРАВДІ живе за правилами: таблиця «правило → так/ні → чим доведено». Тільки читає. |
+| [`scripts/self-check.sh`](scripts/self-check.sh) | Нормативні перевірки R1–R9 з вердиктом «✅ СИСТЕМА ГОТОВА / ❌ ЛИШИЛОСЬ: N» + розширена діагностика (`--full`). Тільки читає. |
+| [`scripts/check-publication-risk.sh`](scripts/check-publication-risk.sh) | Скан пам'яті на секрети/адреси перед тим, як репозиторій стане публічним. |
+| [`scripts/update-kit.sh`](scripts/update-kit.sh) | «Чи свіжий у мене кіт?» — дві ланки: GitHub→клон і клон→твоя інсталяція. |
 
 ## Швидкий старт
 
@@ -52,14 +60,17 @@ git clone https://github.com/ymaxymovych/parallel-ai-dev.git ~/parallel-ai-dev
 cd ~/my-project
 bash ~/parallel-ai-dev/scripts/init-memory.sh
 
-# 3. Заповнити <...> у CLAUDE.md, наповнити PROJECT_MAP.md і DECISIONS.md, закомітити
+# 3. Заповнити coordination/SETUP.md (три декларації) і <...> у CLAUDE.md,
+#    наповнити PROJECT_MAP.md і DECISIONS.md, закомітити
 git add -A && git commit -m "chore: структура пам'яті проєкту" && git push
 
-# 4. Відкрити перший чат промптом з prompts/coordinator.md, решту — з prompts/worker.md
+# 4. Перевірити готовність (нічого не змінює, тільки читає)
+bash ~/parallel-ai-dev/scripts/self-check.sh   # ціль: «✅ СИСТЕМА ГОТОВА»
 
-# 5. Через тиждень роботи — перевірити себе (нічого не змінює, тільки читає)
-bash ~/parallel-ai-dev/scripts/self-check.sh
+# 5. Відкрити перший чат промптом з prompts/coordinator.md, решту — з prompts/worker.md
 ```
+
+Покроково з поясненнями — у [QUICKSTART.md](QUICKSTART.md).
 
 ## Найважливіше правило: запобіжник «анти-кола»
 
